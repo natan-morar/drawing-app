@@ -1,0 +1,16 @@
+{
+  "name": "dash-server-serial",
+  "version": "1.0.0",
+  "description": "serves static content and reads serialport",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Natan Morar",
+  "license": "ISC",
+  "dependencies": {
+    "express": "3.4.8",
+    "socket.io": "1.2.1",
+    "socket.io-client": "^1.5.1"
+  }
+}

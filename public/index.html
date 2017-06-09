@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+
+		
+		<link rel="stylesheet" href="bower_components/drawingboard.js/dist/drawingboard.min.css">
+
+		<style>
+		/*
+		* drawingboards styles: set the board dimensions you want with CSS
+		*/
+		.board {
+			margin: 0 auto;
+			width: 100%;
+			height: 100vh;
+		}
+        
+		</style>
+
+	
+	</head>
+	<body>
+
+
+			<div class="example" data-example="3">
+				<div class="board" id="custom-board-2"></div>
+			</div>
+
+
+		<!-- jquery is required - zepto might do the trick too -->
+		<script src="bower_components/jquery/dist/jquery.min.js"></script>
+		<script src="bower_components/simple-undo/lib/simple-undo.js"></script>
+
+		<script src="bower_components/drawingboard.js/dist/drawingboard.min.js"></script>
+        <script src="bower_components/socket.io-client/dist/socket.io.min.js"></script>
+
+        <script>var socket = io();</script>
+		<script data-example="3">
+             
+
+			var myBoard = new DrawingBoard.Board('custom-board-2', {
+				controls: [
+					'Color',
+					{ Size: { type: 'dropdown' } },
+					{ DrawingMode: { filler: false } },
+//					'Navigation',
+					'Download'
+				],
+				size: 1,
+				webStorage: 'false',
+				enlargeYourContainer: true,
+//				droppable: true, //try dropping an image on the canvas!
+				stretchImg: true //the dropped image can be automatically ugly resized to to take the canvas size
+			});
+
+            var saveInterval, data = {chunk: [], timestamp: [], mouseX: [], mouseY:[], color:[], mode:[], size:[]},
+                p_color = myBoard.color, p_mode = myBoard.mode, p_size = 1, record = true, chunk = 0;
+            
+            var numberPattern = /\d+/g;
+
+            myBoard.ev.bind('board:reset', why);
+            function why() {
+                alert('New Drawing');
+            }
+
+            // get cursor location and store it
+            $('canvas').mousemove(function(e){
+                if(record == true)
+                {
+                    data.chunk.push(chunk);
+                    data.timestamp.push(new Date().getTime());
+                    data.mouseX.push(e.clientX);
+                    data.mouseY.push($('canvas').height()-e.clientY);
+//                    data.color.push(p_color);
+                    data.mode.push(p_mode);
+                    data.size.push(p_size);
+
+                    numbers = p_color.toString().match(numberPattern);
+                    actualColor = rgba2hex(numbers[0],numbers[1],numbers[2],numbers[3]);
+
+                    data.color.push(actualColor);
+                }
+            });
+            // on mousedown start recording cursor position
+            $('canvas').mousedown(function(e){ 
+                record = true; 
+                console.log("started");
+
+                chunk ++;
+
+                data.chunk.push(chunk);
+                data.timestamp.push(new Date().getTime());
+                data.mouseX.push(e.clientX);
+                data.mouseY.push($('canvas').height()-e.clientY);
+//                data.color.push(p_color);
+                data.mode.push(p_mode);
+                data.size.push(p_size);
+
+                numbers = p_color.toString().match(numberPattern);
+                actualColor = rgba2hex(numbers[0],numbers[1],numbers[2],numbers[3]);
+
+                data.color.push(actualColor);
+            })
+            // on mouseup stop recording
+            myBoard.ev.bind('board:stopDrawing', function(){
+                socket.emit("lineStop", data);
+                record = false;
+                console.log("STOPPED")
+                // empty object
+                data = {chunk: [], timestamp: [], mouseX: [], mouseY:[], color:[], mode:[], size:[]};
+            });
+
+            // change other vars
+            myBoard.ev.bind('size:changed', function(e){
+                p_size = e
+            });
+            myBoard.ev.bind('color:changed', function(e){
+                p_color = e;
+            });
+            myBoard.ev.bind('board:mode', function(e){
+                p_mode = e;
+            });
+
+
+
+            function rgba2hex(r, g, b, a) {
+                if (r > 255 || g > 255 || b > 255 || a > 255)
+                    return "#000000";
+                return "#"+(256 + r).toString(16).substr(1) +((1 << 24) + (g << 16) | (b << 8) | a).toString(16).substr(1);
+            }
+		</script>
+
+    </body>
+</html>
